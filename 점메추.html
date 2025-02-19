@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>점메추</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: auto;
+        }
+        
+        .menu-set-group,
+        .price-section {
+            margin: 15px 0;
+        }
+        
+        .roll {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .roll:hover {
+            background-color: #0056b3;
+        }
+        
+        input[type="text"] {
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: calc(100% - 20px);
+            box-sizing: border-box;
+            display: inline-block;
+            text-align: center;
+            /* 중앙 정렬 */
+        }
+        
+        .input {
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: calc(100% - 300px);
+            box-sizing: border-box;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        button.add,
+        button.remove {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 5px;
+        }
+        
+        button.add:hover,
+        button.remove:hover {
+            background-color: #218838;
+        }
+        
+        .sel-item {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        
+        .invisible {
+            display: none;
+        }
+        
+        .custom-input-group {
+            margin-top: 10px;
+            /* 간격 추가 */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>점메추</h2>
+        <h3>메뉴 세트</h3>
+        <div class="menu-set-group">
+            <label><input type="radio" name="menu-set" class="menu-set-all" checked> 전체 메뉴 세트</label><br>
+            <label><input type="radio" name="menu-set" class="menu-set-conv"> 편의점 메뉴 세트</label><br>
+            <label><input type="radio" name="menu-set" class="menu-set-custom"> 커스텀 메뉴 세트</label><br>
+            <div class="invisible menu-set-custom-input custom-input-group">
+                <button class="add">+</button> <br>
+                <div class="item-list"></div>
+            </div>
+        </div>
+        <h3>가격</h3>
+        <div class="price-section">
+            <label><input type="checkbox" class="price-checkbox"> 가격 적용</label><br>
+            <input type="text" class="invisible price" style="display: none;" placeholder="가격">
+        </div>
+        <button class="roll">뽑기</button>
+        <div class="sel-item"></div>
+    </div>
+
+    <script>
+        const log = (value, tag = 'dev', type = 'log') => {
+            console[type](`[${tag}] ${value}`);
+        };
+
+        let getRandomIntInclusive = (min, max) => {
+            const randomBuffer = new Uint32Array(1);
+            window.crypto.getRandomValues(randomBuffer);
+            let randomNumber = randomBuffer[0] / (0xffffffff + 1);
+            return Math.floor(randomNumber * (max - min + 1)) + min;
+        };
+
+        const priceCheckbox = document.querySelector('.price-checkbox');
+        const price = document.querySelector('.price');
+        const menusetGroup = document.querySelector('.menu-set-group');
+        const customInput = document.querySelector('.menu-set-custom-input');
+        const add = document.querySelector('.add');
+        const itemList = document.querySelector('.item-list');
+        const roll = document.querySelector('.roll');
+        const selectedItem = document.querySelector('.sel-item');
+
+        let customItems = [];
+        let customAmount = 0;
+
+        const MENUSET = {
+            ALL: 0,
+            CONV: 1,
+            CUSTOM: 2
+        };
+        let menuset = MENUSET.ALL;
+
+        const menusetElement = {
+            all: document.querySelector('.menu-set-all'),
+            conv: document.querySelector('.menu-set-conv'),
+            custom: document.querySelector('.menu-set-custom')
+        };
+
+        const menusetValue = {
+            [MENUSET.CONV]: {
+                사이다: 1800,
+                진매: 1300,
+                삼김: 1100,
+                제로사이다: 2000,
+                도시락: 6000,
+                육개장: 1000
+            },
+            [MENUSET.ALL]: {
+                사이다: 1800,
+                진매: 1300,
+                삼김: 1100,
+                제로사이다: 2000,
+                도시락: 6000,
+                육개장: 1000,
+                피자: 30000,
+                치킨: 20000
+            }
+        };
+
+        priceCheckbox.addEventListener('change', () => {
+            price.style.display = priceCheckbox.checked ? 'block' : 'none';
+        });
+
+        menusetGroup.addEventListener('change', () => {
+            customInput.style.display = menusetElement.custom.checked ? 'block' : 'none';
+            menuset = menusetElement.all.checked ? MENUSET.ALL : menusetElement.conv.checked ? MENUSET.CONV : MENUSET.CUSTOM;
+        });
+
+        add.addEventListener('click', () => {
+            const menuIndex = customAmount++;
+            const menuInput = document.createElement("input");
+            const priceInput = document.createElement("input");
+            const removeButton = document.createElement("button");
+            const lineBreak = document.createElement("br");
+
+            menuInput.placeholder = "메뉴";
+            menuInput.classList.add("input")
+            priceInput.placeholder = "가격";
+            priceInput.classList.add("input")
+            removeButton.textContent = "-";
+            removeButton.classList.add("remove");
+            removeButton.onclick = () => {
+                menuInput.remove();
+                priceInput.remove();
+                removeButton.remove();
+                lineBreak.remove();
+                customItems = customItems.filter(item => item.menuInput !== menuInput);
+            };
+
+            itemList.append(menuInput, priceInput, removeButton, lineBreak);
+            customItems.push({
+                menuInput,
+                priceInput
+            });
+        });
+
+        roll.addEventListener('click', () => {
+            let menus = [];
+            let totalPrice = 0;
+            let maxPrice = priceCheckbox.checked && price.value ? parseInt(price.value, 10) : Infinity;
+            let dataset = menuset === MENUSET.CUSTOM ? customItems.map(({
+                menuInput,
+                priceInput
+            }) => ({
+                name: menuInput.value.trim(),
+                price: parseInt(priceInput.value, 10) || 0
+            })).filter(item => item.name) : Object.entries(menusetValue[menuset]).map(([name, price]) => ({
+                name,
+                price
+            }));
+
+            while (dataset.length > 0) {
+                let index = getRandomIntInclusive(0, dataset.length - 1);
+                let {
+                    name,
+                    price
+                } = dataset[index];
+
+                if (totalPrice + price <= maxPrice) {
+                    menus.push(name);
+                    totalPrice += price;
+                }
+
+                if (!priceCheckbox.checked && Math.random() > 0.5) break;
+                dataset.splice(index, 1);
+            }
+
+            selectedItem.innerHTML = `==선택된 메뉴==<br> ${menus.join('<br>')}<br> (총 가격: ${totalPrice}원)`;
+        });
+    </script>
+</body>
+
+</html>
